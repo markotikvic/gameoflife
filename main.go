@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-var palette = []color.Color{color.White, color.Black}
-
 const (
-	imageSize = 500  // image canvas covers [-imageSize...+imageSize]
+	imageSize = 500
 	gridSize  = 100
 	cellSize  = 5
-	delay     = 25   // delay between frames in 10ms units
-	nCycles   = 1000 // number of gif frames
+	delay     = 25
+	nCycles   = 1000
 )
+
+var palette = []color.Color{color.White, color.Black}
 
 type Grid struct {
 	image  *image.Paletted
@@ -60,21 +60,15 @@ func randomizeGrid(grid *Grid) {
 	for x := 0; x < gridSize; x++ {
 		for y := 0; y < gridSize; y++ {
 			if rand.Float32() > 0.5 {
-				resurectCell(grid, x, y)
+				cellLives(grid, x, y)
 			} else {
-				killOffCell(grid, x, y)
+				cellDies(grid, x, y)
 			}
 		}
 	}
 }
 
-func applyPatern(grid *Grid, patern string) {
-	switch patern {
-	case "":
-	}
-}
-
-func resurectCell(grid *Grid, x, y int) {
+func cellLives(grid *Grid, x, y int) {
 	x0 := grid.cells[x][y].x0
 	x1 := grid.cells[x][y].x1
 	y0 := grid.cells[x][y].y0
@@ -87,7 +81,7 @@ func resurectCell(grid *Grid, x, y int) {
 	grid.cells[x][y].alive = true
 }
 
-func killOffCell(grid *Grid, x, y int) {
+func cellDies(grid *Grid, x, y int) {
 	x0 := grid.cells[x][y].x0
 	x1 := grid.cells[x][y].x1
 	y0 := grid.cells[x][y].y0
@@ -100,27 +94,26 @@ func killOffCell(grid *Grid, x, y int) {
 	grid.cells[x][y].alive = false
 }
 
-func isAlive(grid *Grid, x, y int) bool {
+func isCellAlive(grid *Grid, x, y int) bool {
 	return grid.cells[x][y].alive
 }
 
-func liveNeighboursCount(grid *Grid, x, y int) int {
+func countNeighbours(grid *Grid, x, y int) int {
 	total := 0
+	// x - left/right
+	// y - top/bottom
 	var neighbours = []image.Point{
-		{-1, -1},
-		{ 0, -1},
-		{ 1, -1},
-
-		{-1,  1},
-		{ 0,  1},
-		{ 1,  1},
-
-		{-1,  0},
-		{ 1,  0},
+		{-1, -1}, // top left
+		{ 0, -1}, // top
+		{ 1, -1}, // top right
+		{-1,  1}, // bottom left
+		{ 0,  1}, // bottom
+		{ 1,  1}, // bottom right
+		{-1,  0}, // left
+		{ 1,  0}, // right
 	}
-
 	for _, n := range neighbours {
-		if isAlive(grid, x + n.X, y + n.Y) {
+		if isCellAlive(grid, x + n.X, y + n.Y) {
 			total++
 		}
 	}
@@ -130,19 +123,16 @@ func liveNeighboursCount(grid *Grid, x, y int) int {
 func gameTick(old, new *Grid) {
 	for x := 1; x < gridSize - 1; x++ {
 		for y := 1; y < gridSize - 1; y++ {
-			liveCellsCount := liveNeighboursCount(old, x, y)
-			if isAlive(old, x, y) {
-				// over population and underpopulation
-				if liveCellsCount > 3 || liveCellsCount < 2 {
-					killOffCell(new, x, y)
+			n := countNeighbours(old, x, y)
+			if isCellAlive(old, x, y) {
+				if n > 3 || n < 2 {
+					cellDies(new, x, y)
 				} else {
-					// leave cell alive
-					resurectCell(new, x, y)
+					cellLives(new, x, y)
 				}
 			} else {
-				// just right
-				if liveCellsCount == 3 {
-					resurectCell(new, x, y)
+				if n == 3 {
+					cellLives(new, x, y)
 				}
 			}
 		}
