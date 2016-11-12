@@ -1,7 +1,7 @@
 # Conway's Game of Life
 
 ### Usage:
-* conways-gol [output_gif]
+* gameoflife [output_gif]
 
 ### Output:
  * GIF 500x500
