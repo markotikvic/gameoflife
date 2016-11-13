@@ -14,7 +14,7 @@ const (
 	gridSize  = 100
 	cellSize  = 5
 	delay     = 25
-	nCycles   = 1000
+	nCycles   = 250
 )
 
 var palette = []color.Color{color.White, color.Black}
