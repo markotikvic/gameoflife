@@ -81,11 +81,15 @@ func cellAlive(c *Cell) bool {
 	return c.alive
 }
 
+func cellInGrid(x, y int) bool {
+	return ((x > 0 && x < gridSize) && (y > 0 && y < gridSize))
+}
+
 func countNeighbours(cells *Cells, x, y int) int {
 	total := 0
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
-			if !(i == 0 && j == 0) {
+			if !(i == 0 && j == 0) && cellInGrid(x+i, y+j) {
 				if cellAlive(&cells[x+i][y+j]) {
 					total++
 				}
@@ -115,8 +119,8 @@ func (cells *Cells) tick() *image.Paletted {
 	rect := image.Rect(0, 0, imageSize, imageSize)
 	image := image.NewPaletted(rect, palette)
 	prev := *cells
-	for x := 1; x < gridSize-1; x++ {
-		for y := 1; y < gridSize-1; y++ {
+	for x := 0; x < gridSize; x++ {
+		for y := 0; y < gridSize; y++ {
 			n := countNeighbours(&prev, x, y)
 			if cellAlive(&prev[x][y]) {
 				if n > 3 || n < 2 {
