@@ -1,7 +1,10 @@
 # Conway's Game of Life
 
 ### Usage:
-* gameoflife [output_gif]
+* gameoflife [-option]
+* options:
+1. n - number of life cycles
+2. o - output file name
 
 ### Output:
  * GIF 500x500 pixels
