@@ -69,12 +69,9 @@ func randomizeGrid(grid *Grid) {
 }
 
 func cellLives(grid *Grid, x, y int) {
-	x0 := grid.cells[x][y].x0
-	x1 := grid.cells[x][y].x1
-	y0 := grid.cells[x][y].y0
-	y1 := grid.cells[x][y].y1
-	for i := x0; i < x1; i++ {
-		for j := y0; j < y1; j++ {
+	cell := grid.cells[x][y]
+	for i := cell.x0; i < cell.x1; i++ {
+		for j := cell.y0; j < cell.y1; j++ {
 			grid.image.Set(i, j, color.Black)
 		}
 	}
@@ -82,39 +79,28 @@ func cellLives(grid *Grid, x, y int) {
 }
 
 func cellDies(grid *Grid, x, y int) {
-	x0 := grid.cells[x][y].x0
-	x1 := grid.cells[x][y].x1
-	y0 := grid.cells[x][y].y0
-	y1 := grid.cells[x][y].y1
-	for i := x0; i < x1; i++ {
-		for j := y0; j < y1; j++ {
+	cell := grid.cells[x][y]
+	for i := cell.x0; i < cell.x1; i++ {
+		for j := cell.y0; j < cell.y1; j++ {
 			grid.image.Set(i, j, color.White)
 		}
 	}
 	grid.cells[x][y].alive = false
 }
 
-func isCellAlive(grid *Grid, x, y int) bool {
+func cellAlive(grid *Grid, x, y int) bool {
 	return grid.cells[x][y].alive
 }
 
 func countNeighbours(grid *Grid, x, y int) int {
 	total := 0
-	// x - left/right
-	// y - top/bottom
-	var neighbours = []image.Point{
-		{-1, -1}, // top left
-		{ 0, -1}, // top
-		{ 1, -1}, // top right
-		{-1,  1}, // bottom left
-		{ 0,  1}, // bottom
-		{ 1,  1}, // bottom right
-		{-1,  0}, // left
-		{ 1,  0}, // right
-	}
-	for _, n := range neighbours {
-		if isCellAlive(grid, x + n.X, y + n.Y) {
-			total++
+	for i := -1; i <= 1; i++ {
+		for j := -1; j <= 1; j++ {
+			if !(i == 0 && j == 0) {
+				if cellAlive(grid, x + i, y + j) {
+					total++
+				}
+			}
 		}
 	}
 	return total
@@ -124,7 +110,7 @@ func gameTick(old, new *Grid) {
 	for x := 1; x < gridSize - 1; x++ {
 		for y := 1; y < gridSize - 1; y++ {
 			n := countNeighbours(old, x, y)
-			if isCellAlive(old, x, y) {
+			if cellAlive(old, x, y) {
 				if n > 3 || n < 2 {
 					cellDies(new, x, y)
 				} else {
