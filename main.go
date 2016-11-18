@@ -17,13 +17,13 @@ const (
 
 var palette = []color.Color{color.White, color.Black}
 
-var nCycles = flag.Int("n", 100, "number of life cycles")
 var outName = flag.String("o", "life.gif", "output file name")
+var nCycles = flag.Int("n", 100, "number of life cycles")
 var gridX   = flag.Int("x", 100, "grid width")
 var gridY   = flag.Int("y", 100, "grid height")
 
-var imageX  = 500
-var imageY  = 500
+var imageX = 500
+var imageY = 500
 
 type Cell struct {
 	x0, y0, x1, y1 int
