@@ -1,14 +1,16 @@
 # Conway's Game of Life
 
-### Usage:
-* gameoflife [-option]
-* options:
-	1. n - number of life cycles (default = 100)
-	2. o - output file name (default = "life.gif")
+### Usage of ./gameoflife:
+* -n int
+* 	number of life cycles (default 100)
+* -o string
+* 	output file name (default "life.gif")
+* -x int
+* 	grid width (default 100)
+* -y int
+* 	grid height (default 100)
 
-### Output:
- * GIF 500x500 pixels
- * 100x100 colony (1 node = 5x5 pixels)
+Outputs a GIF of the game.
 
 ### TODO
 * seeded randomization

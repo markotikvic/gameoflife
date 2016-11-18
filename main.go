@@ -11,34 +11,50 @@ import (
 )
 
 const (
-	imageSize = 500
-	gridSize  = 100
-	cellSize  = 5
-	delay     = 25
+	cellSize = 5
+	delay    = 25
 )
 
 var palette = []color.Color{color.White, color.Black}
 
-var nCycles = flag.Uint64("n", 100, "number of life cycles")
+var nCycles = flag.Int("n", 100, "number of life cycles")
 var outName = flag.String("o", "life.gif", "output file name")
+var gridX   = flag.Int("x", 100, "grid width")
+var gridY   = flag.Int("y", 100, "grid height")
+
+var imageX  = 500
+var imageY  = 500
 
 type Cell struct {
 	x0, y0, x1, y1 int
 	alive          bool
 }
 
-type Cells [gridSize][gridSize]Cell
+type Game struct {
+	cells [][]Cell
+	prev  [][]Cell
+}
 
 func main() {
 	flag.Parse()
+	setImageSize()
 	gameOfLife()
 }
 
-func newCells() *Cells {
-	cells := new(Cells)
-	for x := 0; x < gridSize; x++ {
-		for y := 0; y < gridSize; y++ {
-			cells[x][y] = Cell{
+func setImageSize() {
+	imageX = (*gridX) * 5
+	imageY = (*gridY) * 5
+}
+
+func newGame() *Game {
+	game := &Game{}
+	game.cells = make([][]Cell, *gridX)
+	game.prev = make([][]Cell, *gridX)
+	for x := 0; x < *gridX; x++ {
+		game.cells[x] = make([]Cell, *gridY)
+		game.prev[x] = make([]Cell, *gridY)
+		for y := 0; y < *gridY; y++ {
+			game.cells[x][y] = Cell{
 				x * cellSize,
 				y * cellSize,
 				(x + 1) * cellSize,
@@ -47,50 +63,62 @@ func newCells() *Cells {
 			}
 		}
 	}
-	return cells
+	return game
 }
 
-func randomCells() *Cells {
-	g := newCells()
-	randomizeCells(g)
+func randomGame() *Game {
+	g := newGame()
+	randomizeGame(g)
 	return g
 }
 
-func randomizeCells(cells *Cells) {
+func randomizeGame(g *Game) {
 	rand.Seed(time.Now().UnixNano())
-	for x := 0; x < gridSize; x++ {
-		for y := 0; y < gridSize; y++ {
+	for x := 0; x < *gridX; x++ {
+		for y := 0; y < *gridY; y++ {
 			if rand.Float32() > 0.5 {
-				cellLives(&cells[x][y])
+				g.cellLives(x, y)
 			} else {
-				cellDies(&cells[x][y])
+				g.cellDies(x, y)
 			}
 		}
 	}
 }
 
-func cellLives(c *Cell) {
-	c.alive = true
+func (g *Game) cellLives(x, y int) {
+	g.cells[x][y].alive = true
 }
 
-func cellDies(c *Cell) {
-	c.alive = false
+func (g *Game) cellDies(x, y int) {
+	g.cells[x][y].alive = false
 }
 
-func cellAlive(c *Cell) bool {
-	return c.alive
+func (g *Game) cellAlive(x, y int) bool {
+	return g.cells[x][y].alive
 }
 
-func cellInGrid(x, y int) bool {
-	return ((x > 0 && x < gridSize) && (y > 0 && y < gridSize))
+func (g *Game) neighbourAlive(x, y int) bool {
+	return g.prev[x][y].alive
 }
 
-func countNeighbours(cells *Cells, x, y int) int {
+func outOfBounds(x, y int) bool {
+	return (x < 0 || y < 0) || (x > *gridX - 1 || y > *gridY - 1)
+}
+
+func (g *Game) saveState() {
+	for x := 0; x < *gridX; x++ {
+		for y := 0; y < *gridY; y++ {
+			g.prev[x][y] = g.cells[x][y]
+		}
+	}
+}
+
+func (g *Game) countNeighbours(x, y int) int {
 	total := 0
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
-			if !(i == 0 && j == 0) && cellInGrid(x+i, y+j) {
-				if cellAlive(&cells[x+i][y+j]) {
+			if !(i == 0 && j == 0) && !outOfBounds(x + i, y + j) {
+				if g.neighbourAlive(x + i, y + j) {
 					total++
 				}
 			}
@@ -99,7 +127,7 @@ func countNeighbours(cells *Cells, x, y int) int {
 	return total
 }
 
-func putBlackSpot(img *image.Paletted, c Cell) {
+func fillCell(img *image.Paletted, c Cell) {
 	for i := c.x0; i < c.x1; i++ {
 		for j := c.y0; j < c.y1; j++ {
 			img.Set(i, j, color.Black)
@@ -107,7 +135,7 @@ func putBlackSpot(img *image.Paletted, c Cell) {
 	}
 }
 
-func putWhiteSpot(img *image.Paletted, c Cell) {
+func clearCell(img *image.Paletted, c Cell) {
 	for i := c.x0; i < c.x1; i++ {
 		for j := c.y0; j < c.y1; j++ {
 			img.Set(i, j, color.White)
@@ -115,25 +143,25 @@ func putWhiteSpot(img *image.Paletted, c Cell) {
 	}
 }
 
-func (cells *Cells) tick() *image.Paletted {
-	rect := image.Rect(0, 0, imageSize, imageSize)
+func (g *Game) tick() *image.Paletted {
+	rect := image.Rect(0, 0, imageX, imageY)
 	image := image.NewPaletted(rect, palette)
-	prev := *cells
-	for x := 0; x < gridSize; x++ {
-		for y := 0; y < gridSize; y++ {
-			n := countNeighbours(&prev, x, y)
-			if cellAlive(&prev[x][y]) {
+	g.saveState()
+	for x := 0; x < *gridX; x++ {
+		for y := 0; y < *gridY; y++ {
+			n := g.countNeighbours(x, y)
+			if g.cellAlive(x, y) {
 				if n > 3 || n < 2 {
-					cellDies(&cells[x][y])
-					putWhiteSpot(image, cells[x][y])
+					g.cellDies(x, y)
+					clearCell(image, g.cells[x][y])
 				} else {
-					cellLives(&cells[x][y])
-					putBlackSpot(image, cells[x][y])
+					g.cellLives(x, y)
+					fillCell(image, g.cells[x][y])
 				}
 			} else {
 				if n == 3 {
-					cellLives(&cells[x][y])
-					putBlackSpot(image, cells[x][y])
+					g.cellLives(x, y)
+					fillCell(image, g.cells[x][y])
 				}
 			}
 		}
@@ -142,10 +170,10 @@ func (cells *Cells) tick() *image.Paletted {
 }
 
 func gameOfLife() {
-	cells := randomCells()
+	game := randomGame()
 	anim := gif.GIF{LoopCount: int(*nCycles)}
-	for i := uint64(0); i < *nCycles; i++ {
-		image := cells.tick()
+	for i := 0; i < *nCycles; i++ {
+		image := game.tick()
 		anim.Delay = append(anim.Delay, delay)
 		anim.Image = append(anim.Image, image)
 	}
